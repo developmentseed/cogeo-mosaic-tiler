@@ -13,6 +13,9 @@ import pytest
 from cogeo_mosaic.backends.file import FileBackend
 from cogeo_mosaic.mosaic import MosaicJSON
 
+asset_above = os.path.join(os.path.dirname(__file__), "fixtures", "above_cog.tif")
+above_mosaic_content = MosaicJSON.from_urls([asset_above])
+
 asset1 = os.path.join(os.path.dirname(__file__), "fixtures", "cog1.tif")
 asset2 = os.path.join(os.path.dirname(__file__), "fixtures", "cog2.tif")
 mosaic_content = MosaicJSON.from_urls([asset1, asset2])
@@ -47,7 +50,11 @@ class MosaicMock(FileBackend):
         if mosaic_def is not None:
             self.mosaic_def = mosaic_def
         else:
-            self.mosaic_def = mosaic_content
+            self.mosaic_def = (
+                above_mosaic_content
+                if args[0].endswith("/above.json")
+                else mosaic_content
+            )
 
     def write(self, *args, **kwargs):
         """Write."""
@@ -725,3 +732,19 @@ def test_API_points(backend, app, event):
     assert body["coordinates"]
     assert body["values"]
     assert len(body["values"]) == 2
+
+
+@patch("cogeo_mosaic_tiler.handlers.app.MosaicBackend")
+def test_API_tilesCustomCmap(backend, app, event):
+    """Test /tiles routes."""
+    backend.side_effect = MosaicMock
+
+    event["path"] = f"/8/53/50.png"
+    event["queryStringParameters"] = dict(
+        url="s3://my-bucket/above.json", indexes="1", color_map="custom_above",
+    )
+    res = app(event, {})
+    assert res["statusCode"] == 200
+    assert res["headers"]["Content-Type"] == "image/png"
+    assert res["headers"].get("Cache-Control")
+    assert res["body"]
