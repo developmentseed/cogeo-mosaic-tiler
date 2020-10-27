@@ -1,3 +1,5 @@
+This repo has been archived, checkout our new solution: https://github.com/developmentseed/titiler
+
 # cogeo-mosaic-tiler
 
 Serve Map tile from Cloud Optimized GeoTIFF mosaics based on [mosaicJSON](https://github.com/developmentseed/mosaicjson-spec).
